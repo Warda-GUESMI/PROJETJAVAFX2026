@@ -1,0 +1,44 @@
+/* style.css - pour toutes les vues JavaFX */
+
+.root {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-background-color: #f5f5f5;
+    -fx-padding: 10;
+}
+
+.label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-background-radius: 5;
+}
+
+.button:hover {
+    -fx-background-color: #45a049;
+}
+
+.list-view {
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.text-field {
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 3;
+}
+
+.label#lblEtat {
+    -fx-font-size: 16px;
+    -fx-text-fill: #007ACC;
+}
+
