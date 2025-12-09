@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Classe finale pour gérer l'historique des simulations.
+ * Utilise try-with-resources pour la gestion automatique des ressources.
+ */
 public final class Historique {
 
     private final List<RecordSimulation> records = new ArrayList<>();
@@ -37,8 +41,8 @@ public final class Historique {
     }
 
     /**
-     * Sauvegarde par batch - MÉTHODE PRINCIPALE D'ÉCRITURE
-     * À appeler périodiquement (ex: toutes les 10 simulations ou via timer)
+     * ✅ TRY-WITH-RESOURCES #1
+     * Sauvegarde par batch - UTILISE TRY-WITH-RESOURCES
      */
     public void sauvegarderBatch() {
         List<RecordSimulation> aEcrire;
@@ -48,13 +52,19 @@ public final class Historique {
         }
 
         try {
-            // Lire le contenu existant du fichier principal (si existe)
+            // Lire le contenu existant
             List<String> lignesExistantes = new ArrayList<>();
             if (Files.exists(fichierCsv)) {
-                lignesExistantes = Files.readAllLines(fichierCsv);
+                // ✅ TRY-WITH-RESOURCES pour lecture
+                try (BufferedReader reader = Files.newBufferedReader(fichierCsv)) {
+                    String ligne;
+                    while ((ligne = reader.readLine()) != null) {
+                        lignesExistantes.add(ligne);
+                    }
+                } // ⚡ Auto-close du reader
             }
 
-            // Écrire dans le fichier temporaire : en-tête + anciennes lignes + nouvelles
+            // ✅ TRY-WITH-RESOURCES pour écriture temporaire
             try (BufferedWriter writer = Files.newBufferedWriter(
                     fichierTemp, 
                     StandardOpenOption.CREATE, 
@@ -65,7 +75,7 @@ public final class Historique {
                     writer.write("Date/Heure,Temps (unités),Production (kWh),Consommation (kWh),Bilan (kWh)");
                     writer.newLine();
                 } else {
-                    // Réécrire les lignes existantes (sauf si on veut append uniquement)
+                    // Réécrire lignes existantes
                     for (String ligne : lignesExistantes) {
                         writer.write(ligne);
                         writer.newLine();
@@ -73,39 +83,41 @@ public final class Historique {
                 }
 
                 // Nouvelles lignes
-                for (RecordSimulation r : aEcrire) {
+                for (RecordSimulation record : aEcrire) {
                     String ligne = String.format("%s,%d,%.2f,%.2f,%.2f",
                             LocalDateTime.now().format(DATE_FORMAT),
-                            r.temps(),
-                            r.production(),
-                            r.consommation(),
-                            r.production() - r.consommation()
+                            record.temps(),
+                            record.production(),
+                            record.consommation(),
+                            record.production() - record.consommation()
                     );
                     writer.write(ligne);
                     writer.newLine();
                 }
 
                 writer.flush();
-            }
+            } // ⚡ Auto-close du writer
 
             // Remplacement atomique
-            Files.move(fichierTemp, fichierCsv, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            Files.move(fichierTemp, fichierCsv, 
+                      StandardCopyOption.REPLACE_EXISTING, 
+                      StandardCopyOption.ATOMIC_MOVE);
 
-            // Vider la liste en mémoire APRÈS succès
+            // Vider la liste APRÈS succès
             synchronized (verrou) {
                 records.clear();
             }
 
-            System.out.println("✅ Sauvegarde réussie : " + aEcrire.size() + " ligne(s) écrites dans " + fichierCsv.getFileName());
+            System.out.println("✅ Sauvegarde réussie : " + aEcrire.size() + " ligne(s)");
 
         } catch (IOException e) {
-            System.err.println("❌ Erreur sauvegarde batch : " + e.getMessage());
-            // On garde les données en mémoire pour réessayer plus tard
+            System.err.println("❌ Erreur sauvegarde : " + e.getMessage());
         }
     }
 
     /**
-     * Charge l'historique depuis le fichier CSV (au démarrage)
+     * ✅ TRY-WITH-RESOURCES #2
+     * Charge l'historique depuis le fichier
      */
     public void chargerDepuisFichier() {
         synchronized (verrou) {
@@ -114,12 +126,20 @@ public final class Historique {
                 return;
             }
 
-            try {
-                List<String> lignes = Files.readAllLines(fichierCsv);
+            // ✅ TRY-WITH-RESOURCES pour lecture
+            try (BufferedReader reader = Files.newBufferedReader(fichierCsv)) {
                 records.clear();
-
-                for (int i = 1; i < lignes.size(); i++) { // Sauter l'en-tête
-                    String ligne = lignes.get(i).trim();
+                
+                String ligne;
+                boolean premiereLigne = true;
+                
+                while ((ligne = reader.readLine()) != null) {
+                    if (premiereLigne) {
+                        premiereLigne = false;
+                        continue; // Sauter l'en-tête
+                    }
+                    
+                    ligne = ligne.trim();
                     if (ligne.isEmpty()) continue;
 
                     String[] parts = ligne.split(",");
@@ -130,30 +150,87 @@ public final class Historique {
                             double conso = Double.parseDouble(parts[3].trim());
                             records.add(new RecordSimulation(temps, prod, conso));
                         } catch (NumberFormatException e) {
-                            System.err.println("⚠️ Ligne ignorée (format invalide) : " + ligne);
+                            System.err.println("⚠️ Ligne ignorée : " + ligne);
                         }
                     }
                 }
 
-                System.out.println("✅ " + records.size() + " enregistrement(s) chargé(s) depuis " + fichierCsv.getFileName());
+                System.out.println("✅ " + records.size() + " enregistrement(s) chargé(s)");
 
             } catch (IOException e) {
-                System.err.println("❌ Erreur chargement fichier : " + e.getMessage());
-            }
+                System.err.println("❌ Erreur chargement : " + e.getMessage());
+            } // ⚡ Auto-close du reader
         }
     }
 
+    /**
+     * ✅ TRY-WITH-RESOURCES #3
+     * Vide l'historique et le fichier
+     */
     public void vider() {
         synchronized (verrou) {
             records.clear();
         }
-        try {
-            Files.write(fichierCsv,
-                "Date/Heure,Temps (unités),Production (kWh),Consommation (kWh),Bilan (kWh)\n".getBytes(),
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            System.out.println("✅ Historique vidé (fichier et mémoire).");
+        
+        // ✅ TRY-WITH-RESOURCES pour écriture
+        try (BufferedWriter writer = Files.newBufferedWriter(
+                fichierCsv,
+                StandardOpenOption.CREATE, 
+                StandardOpenOption.TRUNCATE_EXISTING)) {
+            
+            writer.write("Date/Heure,Temps (unités),Production (kWh),Consommation (kWh),Bilan (kWh)");
+            writer.newLine();
+            writer.flush();
+            
+            System.out.println("✅ Historique vidé.");
+            
         } catch (IOException e) {
-            System.err.println("❌ Erreur vidage fichier : " + e.getMessage());
+            System.err.println("❌ Erreur vidage : " + e.getMessage());
+        } // ⚡ Auto-close du writer
+    }
+
+    /**
+     * ✅ TRY-WITH-RESOURCES #4
+     * Exporte l'historique dans un fichier texte
+     */
+    public void exporterVersTexte(Path fichierDestination) throws IOException {
+        synchronized (verrou) {
+            // ✅ TRY-WITH-RESOURCES pour export
+            try (BufferedWriter writer = Files.newBufferedWriter(
+                    fichierDestination,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING)) {
+                
+                writer.write("═══════════════════════════════════════════════════════");
+                writer.newLine();
+                writer.write("           HISTORIQUE DES SIMULATIONS");
+                writer.newLine();
+                writer.write("═══════════════════════════════════════════════════════");
+                writer.newLine();
+                writer.newLine();
+                
+                writer.write(String.format("Nombre total de simulations : %d", records.size()));
+                writer.newLine();
+                writer.newLine();
+                
+                for (RecordSimulation record : records) {
+                    writer.write(String.format(
+                        "Temps: %d | Prod: %.2f kWh | Conso: %.2f kWh | Bilan: %.2f kWh",
+                        record.temps(),
+                        record.production(),
+                        record.consommation(),
+                        record.production() - record.consommation()
+                    ));
+                    writer.newLine();
+                }
+                
+                writer.write("═══════════════════════════════════════════════════════");
+                writer.newLine();
+                writer.flush();
+                
+                System.out.println("✅ Export réussi vers : " + fichierDestination);
+                
+            } // ⚡ Auto-close du writer
         }
     }
 
@@ -179,18 +256,30 @@ public final class Historique {
         return fichierCsv.toString();
     }
 
+    /**
+     * ✅ TRY-WITH-RESOURCES #5
+     * Initialise le fichier avec try-with-resources
+     */
     private void initialiserFichier() {
         try {
             if (Files.notExists(fichierCsv)) {
-                Files.write(fichierCsv,
-                    "Date/Heure,Temps (unités),Production (kWh),Consommation (kWh),Bilan (kWh)\n".getBytes());
-                System.out.println("✅ Fichier créé : " + fichierCsv.getFileName());
+                // ✅ TRY-WITH-RESOURCES pour création
+                try (BufferedWriter writer = Files.newBufferedWriter(
+                        fichierCsv,
+                        StandardOpenOption.CREATE)) {
+                    
+                    writer.write("Date/Heure,Temps (unités),Production (kWh),Consommation (kWh),Bilan (kWh)");
+                    writer.newLine();
+                    writer.flush();
+                    
+                    System.out.println("✅ Fichier créé : " + fichierCsv.getFileName());
+                } // ⚡ Auto-close du writer
             } else {
                 System.out.println("✅ Fichier existant : " + fichierCsv.getFileName());
-                chargerDepuisFichier(); // Charger automatiquement au démarrage
+                chargerDepuisFichier();
             }
         } catch (IOException e) {
-            System.err.println("❌ Impossible de créer le fichier historique : " + e.getMessage());
+            System.err.println("❌ Impossible de créer le fichier : " + e.getMessage());
         }
     }
 }

@@ -2,6 +2,7 @@ package vue;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import Controleur.ControleurHistorique;
 import simulation.modele.simulation.RecordSimulation;
@@ -101,6 +102,7 @@ public class VueHistorique extends VBox {
     
     /**
      * Crée le tableau affichant l'historique.
+     * CORRIGÉ pour fonctionner avec les Records Java 17.
      * @return Le nœud contenant le tableau
      */
     private VBox creerTableauHistorique() {
@@ -113,7 +115,7 @@ public class VueHistorique extends VBox {
         tableauHistorique = new TableView<>();
         tableauHistorique.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         
-        // Colonnes du tableau - CORRIGÉ pour Records
+        // ✅ COLONNES CORRIGÉES - Compatible avec Records
         TableColumn<RecordSimulation, Integer> colTemps = new TableColumn<>("Temps");
         colTemps.setCellValueFactory(cellData -> 
             new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().temps()).asObject());
@@ -262,7 +264,7 @@ public class VueHistorique extends VBox {
     }
     
     /**
-     * Recharge l'historique complet depuis le contrôleur
+     * Recharge l'historique complet depuis le contrôleur.
      */
     public void recharger() {
         List<RecordSimulation> historique = controleur.obtenirHistorique();
@@ -278,7 +280,7 @@ public class VueHistorique extends VBox {
     }
     
     /**
-     * Applique le filtre par temps
+     * Applique le filtre par temps.
      */
     private void appliquerFiltre() {
         String texte = txtFiltreTemps.getText().trim();
@@ -300,7 +302,7 @@ public class VueHistorique extends VBox {
     }
     
     /**
-     * Exporte l'historique en format texte
+     * Exporte l'historique en format texte.
      */
     private void exporterHistorique() {
         String rapport = controleur.exporterEnTexte();
@@ -322,7 +324,7 @@ public class VueHistorique extends VBox {
     }
     
     /**
-     * Vide l'historique après confirmation
+     * Vide l'historique après confirmation.
      */
     private void viderHistorique() {
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
@@ -341,7 +343,8 @@ public class VueHistorique extends VBox {
     }
     
     /**
-     * Affiche les détails d'une simulation sélectionnée
+     * Affiche les détails d'une simulation sélectionnée.
+     * @param record L'enregistrement sélectionné
      */
     private void afficherDetails(RecordSimulation record) {
         double bilan = record.production() - record.consommation();
@@ -368,7 +371,9 @@ public class VueHistorique extends VBox {
     }
     
     /**
-     * Affiche une alerte d'erreur
+     * Affiche une alerte d'erreur.
+     * @param titre Le titre de l'alerte
+     * @param message Le message à afficher
      */
     private void afficherAlerte(String titre, String message) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
@@ -379,7 +384,9 @@ public class VueHistorique extends VBox {
     }
     
     /**
-     * Affiche une information
+     * Affiche une information.
+     * @param titre Le titre de l'information
+     * @param message Le message à afficher
      */
     private void afficherInfo(String titre, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);

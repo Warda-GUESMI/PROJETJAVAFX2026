@@ -47,12 +47,27 @@ public record AlerteRecord(
     }
     
     /**
-     * Retourne la date/heure formatée.
+     * Retourne la date/heure formatée (NÉCESSAIRE pour PropertyValueFactory).
      * @return String formaté
      */
-    public String dateHeure() {
+    public String getDateHeure() {
         return timestamp.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
     }
+    
+    /**
+     * Alias pour compatibilité avec l'ancien code
+     */
+    public String dateHeure() {
+        return getDateHeure();
+    }
+    
+    // Getters pour PropertyValueFactory
+    public String getType() { return type; }
+    public String getSeverite() { return severite; }
+    public String getMessage() { return message; }
+    public String getStatut() { return statut; }
+    public double getValeurMesuree() { return valeurMesuree; }
+    public double getValeurSeuil() { return valeurSeuil; }
     
     /**
      * Crée une copie avec un nouveau statut.
@@ -97,6 +112,6 @@ public record AlerteRecord(
     @Override
     public String toString() {
         return String.format("[%s] %s - %s: %s (Statut: %s)",
-            dateHeure(), severite, type, message, statut);
+            getDateHeure(), severite, type, message, statut);
     }
 }

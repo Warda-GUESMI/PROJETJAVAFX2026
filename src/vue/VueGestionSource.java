@@ -176,7 +176,8 @@ public class VueGestionSource extends Stage {
         
         Button btnSupprimer = new Button("Supprimer la Source");
         btnSupprimer.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
-        btnSupprimer.setOnAction(e -> supprimerSource());
+       btnSupprimer.setOnAction(e -> supprimerSourceAvecConfirmation());
+
         
         Button btnActualiser = new Button("Actualiser");
         btnActualiser.setOnAction(e -> actualiserTableau());
@@ -279,4 +280,36 @@ public class VueGestionSource extends Stage {
         alerte.setContentText(message);
         alerte.showAndWait();
     }
+    /**
+ * Supprime la source sélectionnée avec une confirmation utilisateur.
+ */
+private void supprimerSourceAvecConfirmation() {
+
+    SourceEnergie sourceSelectionnee = tableauSources.getSelectionModel().getSelectedItem();
+
+    if (sourceSelectionnee == null) {
+        afficherAlerte("Erreur", "Veuillez sélectionner une source à supprimer.");
+        return;
+    }
+
+    Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+    confirmation.setTitle("Confirmation de suppression");
+    confirmation.setHeaderText("Voulez-vous vraiment supprimer cette source ?");
+    confirmation.setContentText("Type : " + sourceSelectionnee.getClass().getSimpleName());
+
+    confirmation.showAndWait().ifPresent(reponse -> {
+        if (reponse == ButtonType.OK) {
+
+            boolean supprime = controleur.supprimerSource(sourceSelectionnee);
+
+            if (supprime) {
+                actualiserTableau();
+                afficherAlerte("Succès", "Source supprimée avec succès !");
+            } else {
+                afficherAlerte("Erreur", "Impossible de supprimer la source.");
+            }
+        }
+    });
+}
+
 }

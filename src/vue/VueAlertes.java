@@ -3,7 +3,6 @@ package vue;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import Controleur.ControleurAlertes;
@@ -142,6 +141,7 @@ public class VueAlertes extends Stage {
     
     /**
      * Crée le tableau affichant les alertes.
+     * CORRIGÉ pour fonctionner avec les Records Java 17.
      * @return Le nœud contenant le tableau
      */
     private VBox creerTableauAlertes() {
@@ -153,9 +153,10 @@ public class VueAlertes extends Stage {
         tableauAlertes = new TableView<>();
         tableauAlertes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         
-        // Colonnes du tableau
+        // ✅ COLONNES CORRIGÉES - Compatible avec Records
         TableColumn<AlerteRecord, String> colDate = new TableColumn<>("Date/Heure");
-        colDate.setCellValueFactory(new PropertyValueFactory<>("dateHeure"));
+        colDate.setCellValueFactory(cellData -> 
+            new javafx.beans.property.SimpleStringProperty(cellData.getValue().getDateHeure()));
         colDate.setPrefWidth(150);
         colDate.setCellFactory(col -> new TableCell<AlerteRecord, String>() {
             @Override
@@ -171,11 +172,13 @@ public class VueAlertes extends Stage {
         });
         
         TableColumn<AlerteRecord, String> colType = new TableColumn<>("Type");
-        colType.setCellValueFactory(new PropertyValueFactory<>("type"));
+        colType.setCellValueFactory(cellData -> 
+            new javafx.beans.property.SimpleStringProperty(cellData.getValue().getType()));
         colType.setPrefWidth(120);
         
         TableColumn<AlerteRecord, String> colSeverite = new TableColumn<>("Sévérité");
-        colSeverite.setCellValueFactory(new PropertyValueFactory<>("severite"));
+        colSeverite.setCellValueFactory(cellData -> 
+            new javafx.beans.property.SimpleStringProperty(cellData.getValue().getSeverite()));
         colSeverite.setPrefWidth(100);
         colSeverite.setCellFactory(col -> new TableCell<AlerteRecord, String>() {
             @Override
@@ -205,11 +208,13 @@ public class VueAlertes extends Stage {
         });
         
         TableColumn<AlerteRecord, String> colMessage = new TableColumn<>("Message");
-        colMessage.setCellValueFactory(new PropertyValueFactory<>("message"));
+        colMessage.setCellValueFactory(cellData -> 
+            new javafx.beans.property.SimpleStringProperty(cellData.getValue().getMessage()));
         colMessage.setPrefWidth(300);
         
         TableColumn<AlerteRecord, String> colStatut = new TableColumn<>("Statut");
-        colStatut.setCellValueFactory(new PropertyValueFactory<>("statut"));
+        colStatut.setCellValueFactory(cellData -> 
+            new javafx.beans.property.SimpleStringProperty(cellData.getValue().getStatut()));
         colStatut.setPrefWidth(100);
         colStatut.setCellFactory(col -> new TableCell<AlerteRecord, String>() {
             @Override
