@@ -2,6 +2,8 @@ package vue;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,39 +18,34 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import Controleur.*;
 import simulation.modele.simulation.GestionEnergie;
+import simulation.modele.simulation.Consommateur;
+import simulation.modele.source.SourceEnergie;
 
 /**
- * ApplicationPrincipaleModern.java
- * Variante "ULTRA MODERNE" de l'écran principal.
- * Style : barre latérale compacte, toolbar épurée, centre dynamique.
- * Compatible Java 17 + JavaFX.
+ * ApplicationPrincipaleModern.java - VERSION SANS ALERTES
  */
 public class ApplicationPrincipaleModern extends Application {
 
-    // --- Modèle & contrôleurs ---
     private GestionEnergie gestionEnergie;
     private ControleurSource controleurSource;
     private ControleurConsommateur controleurConsommateur;
     private ControleurSimulation controleurSimulation;
     private ControleurHistorique controleurHistorique;
-    private ControleurAlertes controleurAlertes;
     private ControleurOptimisation controleurOptimisation;
 
-    // --- Vues (peuvent être Node ou Stage) ---
     private VueGestionSource vueSource;
     private VueGestionConsommateur vueConsommateur;
     private VueSimulation vueSimulation;
     private VueHistorique vueHistorique;
-    private VueAlertes vueAlertes;
     private VueOptimisation vueOptimisation;
 
-    // Container principal
     private BorderPane root;
-    private StackPane centre; // zone qui affiche les vues
+    private StackPane centre;
     private ToggleGroup navGroup;
 
-    // Barres et statut
+    private TextField txtRechercheGlobale;
     private Label lblStatut;
+    private Label lblInfoStats;
 
     @Override
     public void start(Stage primaryStage) {
@@ -61,7 +58,6 @@ public class ApplicationPrincipaleModern extends Application {
         centre.setPadding(new Insets(20));
         centre.setStyle("-fx-background-color: linear-gradient(#0f1724, #071021);");
 
-        // Démarrer sur le dashboard moderne
         Node accueil = creerDashboard();
         centre.getChildren().add(accueil);
         root.setCenter(centre);
@@ -69,46 +65,52 @@ public class ApplicationPrincipaleModern extends Application {
         root.setBottom(creerBarreStatut());
 
         Scene scene = new Scene(root, 1400, 900);
-        // Police par défaut plus nette
         scene.getRoot().setStyle("-fx-font-family: 'Segoe UI', 'Roboto', 'Helvetica';");
 
-        primaryStage.setTitle("⚡ Système de Gestion Énergétique — Modern UI");
+        primaryStage.setTitle("⚡ Système de Gestion Énergétique – ENERGSOL");
         primaryStage.setScene(scene);
         primaryStage.setMaximized(true);
         primaryStage.show();
 
-        // Raccourci : Echap pour quitter (confirmation)
         scene.setOnKeyPressed(evt -> {
             if (evt.getCode() == KeyCode.ESCAPE) {
                 quitterApplication();
             }
         });
+
+        mettreAJourStatistiques();
     }
 
-    /**
-     * Initialise le modèle et les contrôleurs (MVC).
-     */
     private void initialiserModeleEtControleurs() {
         gestionEnergie = new GestionEnergie();
         controleurSource = new ControleurSource(gestionEnergie);
         controleurConsommateur = new ControleurConsommateur(gestionEnergie);
         controleurSimulation = new ControleurSimulation(gestionEnergie);
         controleurHistorique = new ControleurHistorique(controleurSimulation.getHistorique());
-        controleurAlertes = new ControleurAlertes(gestionEnergie);
         controleurOptimisation = new ControleurOptimisation(gestionEnergie);
 
-        // Instancier vues (elles peuvent créer leurs propres Stages internes)
         vueSource = new VueGestionSource(controleurSource);
         vueConsommateur = new VueGestionConsommateur(controleurConsommateur);
         vueSimulation = new VueSimulation(controleurSimulation);
         vueHistorique = new VueHistorique(controleurHistorique);
-        vueAlertes = new VueAlertes(controleurAlertes);
         vueOptimisation = new VueOptimisation(controleurOptimisation);
+        
+        // Ajouter des listeners pour mettre à jour les stats automatiquement
+        ajouterListenersMAJ();
+    }
+    
+    /**
+     * Ajoute des listeners pour mettre à jour automatiquement les statistiques
+     */
+    private void ajouterListenersMAJ() {
+        // Timer pour mise à jour automatique toutes les 2 secondes
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(2), e -> mettreAJourStatistiques())
+        );
+        timeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        timeline.play();
     }
 
-    /**
-     * Barre latérale moderne (compacte) pour la navigation.
-     */
     private VBox creerBarreLaterale() {
         VBox side = new VBox(12);
         side.setPadding(new Insets(18));
@@ -122,34 +124,49 @@ public class ApplicationPrincipaleModern extends Application {
         logo.setTextFill(Color.WHITE);
         logo.setFont(Font.font(18));
 
-        // Recherche rapide
         TextField search = new TextField();
-        search.setPromptText("Rechercher une source, conso, simulation...");
+        search.setPromptText("Rechercher...");
         search.setStyle("-fx-background-radius: 8; -fx-prompt-text-fill: derive(-fx-control-inner-background, -30%);");
+        search.setOnAction(e -> rechercherDansBarre(search.getText()));
 
-        // Nav buttons
         navGroup = new ToggleGroup();
-        ToggleButton tbAccueil = createNavButton("Accueil", "🏠", true);
-        ToggleButton tbSources = createNavButton("Sources", "⚡", false);
-        ToggleButton tbConsos = createNavButton("Consommateurs", "🏠", false);
-        ToggleButton tbSim = createNavButton("Simulation", "▶️", false);
-        ToggleButton tbHist = createNavButton("Historique", "📜", false);
-        ToggleButton tbAlert = createNavButton("Alertes", "🔔", false);
-        ToggleButton tbOpt = createNavButton("Optimisation", "🎯", false);
+        
+        ToggleButton btnAccueil = createNavButton("Accueil", "🏠", true);
+        ToggleButton btnSources = createNavButton("Sources", "⚡", false);
+        ToggleButton btnConsos = createNavButton("Consommateurs", "🏢", false);
+        ToggleButton btnSim = createNavButton("Simulation", "▶️", false);
+        ToggleButton btnHist = createNavButton("Historique", "📜", false);
+        ToggleButton btnOpt = createNavButton("Optimisation", "🎯", false);
 
-        // Events: basculer le contenu centre
-        tbAccueil.setOnAction(e -> setCentre(creerDashboard()));
-        tbSources.setOnAction(e -> setCentre(obtenirContenu(vueSource)));
-        tbConsos.setOnAction(e -> setCentre(obtenirContenu(vueConsommateur)));
-        tbSim.setOnAction(e -> setCentre(obtenirContenu(vueSimulation)));
-        tbHist.setOnAction(e -> { setCentre(obtenirContenu(vueHistorique)); vueHistorique.recharger(); });
-        tbAlert.setOnAction(e -> { setCentre(obtenirContenu(vueAlertes)); if (vueAlertes != null) vueAlertes.actualiserTout(); });
-        tbOpt.setOnAction(e -> setCentre(obtenirContenu(vueOptimisation)));
+        btnAccueil.setOnAction(e -> { 
+            mettreAJourStatistiques(); 
+            setCentre(creerDashboard()); 
+        });
+        btnSources.setOnAction(e -> { 
+            mettreAJourStatistiques(); 
+            setCentre(obtenirContenu(vueSource)); 
+        });
+        btnConsos.setOnAction(e -> { 
+            mettreAJourStatistiques(); 
+            setCentre(obtenirContenu(vueConsommateur)); 
+        });
+        btnSim.setOnAction(e -> {
+            mettreAJourStatistiques();
+            setCentre(obtenirContenu(vueSimulation));
+        });
+        btnHist.setOnAction(e -> {
+            vueHistorique.recharger(); // Recharger les données avant d'afficher
+            mettreAJourStatistiques();
+            setCentre(obtenirContenu(vueHistorique));
+        });
+        btnOpt.setOnAction(e -> {
+            mettreAJourStatistiques();
+            setCentre(obtenirContenu(vueOptimisation));
+        });
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        // Minibar bottom : version + quick actions
         HBox bottom = new HBox(8);
         bottom.setAlignment(Pos.CENTER_LEFT);
         bottom.setPadding(new Insets(6, 0, 0, 0));
@@ -162,13 +179,22 @@ public class ApplicationPrincipaleModern extends Application {
         bottom.getChildren().addAll(ver, new Region(), btnQuit);
         HBox.setHgrow(bottom.getChildren().get(1), Priority.ALWAYS);
 
-        side.getChildren().addAll(logo, search, tbAccueil, tbSources, tbConsos, tbSim, tbHist, tbAlert, tbOpt, spacer, bottom);
+        side.getChildren().addAll(
+            logo, 
+            search, 
+            btnAccueil, 
+            btnSources, 
+            btnConsos, 
+            btnSim, 
+            btnHist, 
+            btnOpt, 
+            spacer, 
+            bottom
+        );
+        
         return side;
     }
 
-    /**
-     * Crée un ToggleButton stylé pour la barre latérale.
-     */
     private ToggleButton createNavButton(String text, String icon, boolean selected) {
         ToggleButton btn = new ToggleButton(icon + "  " + text);
         btn.setToggleGroup(navGroup);
@@ -179,15 +205,11 @@ public class ApplicationPrincipaleModern extends Application {
             "-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; " +
             "-fx-padding: 10 12 10 12; -fx-background-radius: 8;"
         );
-        // Hover effects
         btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: rgba(255,255,255,0.04); -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 12 10 12; -fx-background-radius: 8;"));
         btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 12 10 12; -fx-background-radius: 8;"));
         return btn;
     }
 
-    /**
-     * Toolbar moderne en haut avec titre, recherche, profil et actions rapides.
-     */
     private HBox creerToolbar(Stage stage) {
         HBox toolbar = new HBox(12);
         toolbar.setPadding(new Insets(12, 18, 12, 18));
@@ -201,11 +223,12 @@ public class ApplicationPrincipaleModern extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        TextField quick = new TextField();
-        quick.setPromptText("Recherche rapide...");
-        quick.setPrefWidth(380);
+        txtRechercheGlobale = new TextField();
+        txtRechercheGlobale.setPromptText("Recherche rapide (sources, consommateurs, simulations)...");
+        txtRechercheGlobale.setPrefWidth(380);
+        txtRechercheGlobale.setOnAction(e -> effectuerRechercheGlobale(txtRechercheGlobale.getText()));
 
-        Button btnRefresh = new Button("⟳");
+        Button btnRefresh = new Button("⟳ Actualiser");
         btnRefresh.setOnAction(e -> actualiserVueActive());
         btnRefresh.setStyle("-fx-background-radius: 6; -fx-font-size: 14px;");
 
@@ -213,24 +236,83 @@ public class ApplicationPrincipaleModern extends Application {
         btnAide.setOnAction(e -> afficherGuide());
         btnAide.setStyle("-fx-background-radius: 6; -fx-font-size: 12px;");
 
-        // Profil menu
         MenuButton profile = new MenuButton("Warda");
-        profile.getItems().addAll(new MenuItem("Profil"), new MenuItem("Préférences"), new MenuItem("À propos"));
-        profile.getItems().get(2).setOnAction(e -> afficherAPropos());
+        MenuItem itemProfil = new MenuItem("Profil");
+        MenuItem itemPref = new MenuItem("Préférences");
+        MenuItem itemAbout = new MenuItem("À propos");
+        itemAbout.setOnAction(e -> afficherAPropos());
+        profile.getItems().addAll(itemProfil, itemPref, itemAbout);
 
-        toolbar.getChildren().addAll(titre, spacer, quick, btnRefresh, btnAide, profile);
+        toolbar.getChildren().addAll(titre, spacer, txtRechercheGlobale, btnRefresh, btnAide, profile);
         return toolbar;
     }
 
-    /**
-     * Définit la zone centrale avec animation.
-     */
+    private void effectuerRechercheGlobale(String requete) {
+        if (requete == null || requete.trim().isEmpty()) {
+            afficherNotification("⚠️ Veuillez saisir un terme de recherche");
+            return;
+        }
+
+        String terme = requete.toLowerCase().trim();
+        StringBuilder resultats = new StringBuilder();
+        resultats.append("╔═══════════════════════════════════════╗\n");
+        resultats.append("    RÉSULTATS DE RECHERCHE\n");
+        resultats.append("╚═══════════════════════════════════════╝\n\n");
+        resultats.append("Terme recherché : \"").append(requete).append("\"\n\n");
+
+        int compteur = 0;
+
+        resultats.append("📌 SOURCES D'ÉNERGIE:\n");
+        for (SourceEnergie source : controleurSource.obtenirSources()) {
+            String nomType = source.getClass().getSimpleName().toLowerCase();
+            if (nomType.contains(terme)) {
+                resultats.append(String.format("  • %s - Production: %.2f kWh\n", 
+                    source.getClass().getSimpleName(), source.getProduction()));
+                compteur++;
+            }
+        }
+
+        resultats.append("\n📌 CONSOMMATEURS:\n");
+        for (Consommateur conso : controleurConsommateur.obtenirConsommateurs()) {
+            if (conso.getNom().toLowerCase().contains(terme)) {
+                resultats.append(String.format("  • %s - Consommation: %.2f kWh\n", 
+                    conso.getNom(), conso.getConsommation()));
+                compteur++;
+            }
+        }
+
+        resultats.append("\n╔═══════════════════════════════════════╗\n");
+        resultats.append(String.format("Total : %d résultat(s) trouvé(s)\n", compteur));
+        resultats.append("╚═══════════════════════════════════════╝\n");
+
+        afficherResultatsRecherche(resultats.toString());
+        afficherNotification("✓ Recherche effectuée : " + compteur + " résultat(s)");
+    }
+
+    private void rechercherDansBarre(String requete) {
+        effectuerRechercheGlobale(requete);
+    }
+
+    private void afficherResultatsRecherche(String resultats) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Résultats de recherche");
+        alert.setHeaderText("Recherche dans le système");
+        
+        TextArea textArea = new TextArea(resultats);
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setPrefRowCount(20);
+        
+        alert.getDialogPane().setContent(textArea);
+        alert.getDialogPane().setPrefSize(600, 500);
+        alert.showAndWait();
+    }
+
     private void setCentre(Node node) {
         if (node == null) {
             node = creerPlaceholder("Contenu indisponible");
         }
 
-        // Animation fade entre contenus
         if (!centre.getChildren().isEmpty()) {
             Node old = centre.getChildren().get(0);
             FadeTransition ftOut = new FadeTransition(Duration.millis(180), old);
@@ -247,7 +329,6 @@ public class ApplicationPrincipaleModern extends Application {
         ftIn.setToValue(1.0);
         ftIn.play();
 
-        // léger effet de scale pour pop-in
         ScaleTransition st = new ScaleTransition(Duration.millis(220), node);
         st.setFromX(0.995);
         st.setFromY(0.995);
@@ -256,9 +337,6 @@ public class ApplicationPrincipaleModern extends Application {
         st.play();
     }
 
-    /**
-     * Crée un Dashboard moderne (cartes cliquables) — version compacte.
-     */
     private Node creerDashboard() {
         VBox rootDash = new VBox(24);
         rootDash.setPadding(new Insets(24));
@@ -267,21 +345,74 @@ public class ApplicationPrincipaleModern extends Application {
         titre.setTextFill(Color.WHITE);
         titre.setFont(Font.font(26));
 
+        GridPane stats = new GridPane();
+        stats.setHgap(20);
+        stats.setVgap(10);
+        stats.setPadding(new Insets(20));
+        stats.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-background-radius: 10;");
+
+        int nbSources = controleurSource.obtenirSources().size();
+        int nbConsos = controleurConsommateur.obtenirConsommateurs().size();
+        int nbSims = controleurHistorique.compterSimulations();
+        double prodTotale = controleurSource.calculerProductionTotale();
+        double consoTotale = controleurConsommateur.calculerConsommationTotale();
+
+        Label lblSources = creerLabelStat("Sources", String.valueOf(nbSources), "⚡");
+        Label lblConsos = creerLabelStat("Consommateurs", String.valueOf(nbConsos), "🏢");
+        Label lblSims = creerLabelStat("Simulations", String.valueOf(nbSims), "📊");
+        Label lblProd = creerLabelStat("Production", String.format("%.2f kWh", prodTotale), "🔋");
+        Label lblConso = creerLabelStat("Consommation", String.format("%.2f kWh", consoTotale), "⚡");
+
+        stats.add(lblSources, 0, 0);
+        stats.add(lblConsos, 1, 0);
+        stats.add(lblSims, 2, 0);
+        stats.add(lblProd, 3, 0);
+        stats.add(lblConso, 4, 0);
+
         FlowPane cartes = new FlowPane();
         cartes.setHgap(18);
         cartes.setVgap(18);
 
         cartes.getChildren().addAll(
-            creerCarteSmall("⚡ Sources", "Gérer les sources", () -> setCentre(obtenirContenu(vueSource))),
-            creerCarteSmall("🏠 Consommateurs", "Gérer les consommateurs", () -> setCentre(obtenirContenu(vueConsommateur))),
-            creerCarteSmall("▶️ Simulation", "Lancer une simulation", () -> setCentre(obtenirContenu(vueSimulation))),
-            creerCarteSmall("📜 Historique", "Historique des simulations", () -> { setCentre(obtenirContenu(vueHistorique)); vueHistorique.recharger(); }),
-            creerCarteSmall("🔔 Alertes", "Voir les alertes", () -> { setCentre(obtenirContenu(vueAlertes)); if (vueAlertes != null) vueAlertes.actualiserTout(); }),
-            creerCarteSmall("🎯 Optimisation", "Recommandations", () -> setCentre(obtenirContenu(vueOptimisation)))
+            creerCarteSmall("⚡ Sources", "Gérer les sources", () -> { 
+                mettreAJourStatistiques();
+                setCentre(obtenirContenu(vueSource)); 
+            }),
+            creerCarteSmall("🏢 Consommateurs", "Gérer les consommateurs", () -> { 
+                mettreAJourStatistiques();
+                setCentre(obtenirContenu(vueConsommateur)); 
+            }),
+            creerCarteSmall("▶️ Simulation", "Lancer une simulation", () -> {
+                mettreAJourStatistiques();
+                setCentre(obtenirContenu(vueSimulation));
+            }),
+            creerCarteSmall("📜 Historique", "Historique des simulations", () -> {
+                vueHistorique.recharger(); // Recharger avant d'afficher
+                mettreAJourStatistiques();
+                setCentre(obtenirContenu(vueHistorique));
+            }),
+            creerCarteSmall("🎯 Optimisation", "Recommandations", () -> {
+                mettreAJourStatistiques();
+                setCentre(obtenirContenu(vueOptimisation));
+            })
         );
 
-        rootDash.getChildren().addAll(titre, cartes);
+        rootDash.getChildren().addAll(titre, stats, cartes);
         return rootDash;
+    }
+
+    private Label creerLabelStat(String titre, String valeur, String icone) {
+        VBox box = new VBox(5);
+        box.setAlignment(Pos.CENTER);
+        Label lbl = new Label(icone + " " + titre);
+        lbl.setTextFill(Color.web("#bcd3e6"));
+        lbl.setFont(Font.font(12));
+        Label val = new Label(valeur);
+        val.setTextFill(Color.WHITE);
+        val.setFont(Font.font(18));
+        val.setStyle("-fx-font-weight: bold;");
+        box.getChildren().addAll(lbl, val);
+        return new Label() {{ setGraphic(box); }};
     }
 
     private VBox creerCarteSmall(String titre, String sous, Runnable action) {
@@ -306,9 +437,6 @@ public class ApplicationPrincipaleModern extends Application {
         return carte;
     }
 
-    /**
-     * Obtient le contenu d'une vue (Node ou Stage) — réutilisé.
-     */
     private Node obtenirContenu(Object vue) {
         if (vue == null) return creerPlaceholder("Vue non disponible");
         if (vue instanceof Node) return (Node) vue;
@@ -316,7 +444,6 @@ public class ApplicationPrincipaleModern extends Application {
             Stage s = (Stage) vue;
             if (s.getScene() != null && s.getScene().getRoot() != null) return s.getScene().getRoot();
         }
-        // Certains composants (ex: VueHistorique) peuvent être des Controls personnalisés
         try {
             return (Node) vue;
         } catch (Exception ex) {
@@ -324,9 +451,6 @@ public class ApplicationPrincipaleModern extends Application {
         }
     }
 
-    /**
-     * Placeholder simple
-     */
     private VBox creerPlaceholder(String message) {
         VBox box = new VBox(12);
         box.setAlignment(Pos.CENTER);
@@ -338,67 +462,91 @@ public class ApplicationPrincipaleModern extends Application {
         return box;
     }
 
-    /**
-     * Barre de statut minimaliste
-     */
     private HBox creerBarreStatut() {
         HBox barre = new HBox(12);
         barre.setPadding(new Insets(10));
         barre.setStyle("-fx-background-color: linear-gradient(#091220, #07101a); -fx-border-color: rgba(255,255,255,0.03); -fx-border-width: 1 0 0 0;");
+        
         lblStatut = new Label("✓ Système prêt");
         lblStatut.setTextFill(Color.web("#84e39d"));
-        Label info = new Label("Sources: 0  •  Consommateurs: 0  •  Simulations: 0");
-        info.setTextFill(Color.web("#a7b6c6"));
+        
+        lblInfoStats = new Label("Sources: 0  •  Consommateurs: 0  •  Simulations: 0");
+        lblInfoStats.setTextFill(Color.web("#a7b6c6"));
+        
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
+        
         Label ver = new Label("ENICARTHAGE • v1.0");
         ver.setTextFill(Color.web("#8f9bb0"));
-        barre.getChildren().addAll(lblStatut, info, spacer, ver);
+        
+        barre.getChildren().addAll(lblStatut, lblInfoStats, spacer, ver);
         return barre;
     }
 
-    /**
-     * Actualise la vue active (selon bouton actif).
-     */
+    private void mettreAJourStatistiques() {
+        int nbSources = controleurSource.obtenirSources().size();
+        int nbConsos = controleurConsommateur.obtenirConsommateurs().size();
+        int nbSims = controleurHistorique.compterSimulations();
+        
+        if (lblInfoStats != null) {
+            lblInfoStats.setText(String.format("Sources: %d  •  Consommateurs: %d  •  Simulations: %d", 
+                nbSources, nbConsos, nbSims));
+        }
+    }
+
     private void actualiserVueActive() {
+        // Toujours mettre à jour les statistiques d'abord
+        mettreAJourStatistiques();
+        
         Toggle selected = navGroup.getSelectedToggle();
         if (selected == null) {
             afficherNotification("Aucune vue sélectionnée");
             return;
         }
+        
         String text = ((ToggleButton) selected).getText();
-        if (text.contains("Historique")) {
+        
+        if (text.contains("Accueil")) {
+            setCentre(creerDashboard());
+        } else if (text.contains("Sources")) {
+            setCentre(obtenirContenu(vueSource));
+        } else if (text.contains("Consommateurs")) {
+            setCentre(obtenirContenu(vueConsommateur));
+        } else if (text.contains("Simulation")) {
+            setCentre(obtenirContenu(vueSimulation));
+        } else if (text.contains("Historique")) {
             vueHistorique.recharger();
-        } else if (text.contains("Alertes")) {
-            if (vueAlertes != null) vueAlertes.actualiserTout();
+            setCentre(obtenirContenu(vueHistorique));
+        } else if (text.contains("Optimisation")) {
+            setCentre(obtenirContenu(vueOptimisation));
         }
+        
         afficherNotification("✓ Vue actualisée");
     }
 
-    /**
-     * Boîte À propos
-     */
     private void afficherAPropos() {
         Alert alerte = new Alert(Alert.AlertType.INFORMATION);
         alerte.setTitle("À propos");
-        alerte.setHeaderText("Système de Gestion Énergétique — Modern UI");
-        alerte.setContentText("Mini-Projet ENICARTHAGE 2025-2026\nTech: Java 17 + JavaFX — Theme moderne");
+        alerte.setHeaderText("Système de Gestion Énergétique");
+        alerte.setContentText("ENICARTHAGE 2025-2026\nTech: Java 17 + JavaFX – Theme moderne\nToutes les fonctionnalités opérationnelles");
         alerte.showAndWait();
     }
 
-    /**
-     * Guide d'utilisation simple
-     */
     private void afficherGuide() {
         Alert guide = new Alert(Alert.AlertType.INFORMATION);
         guide.setTitle("Guide d'utilisation");
-        guide.setHeaderText("Raccourcis & étapes");
-        guide.setContentText("Utilisez la barre latérale pour naviguer. Appuyez sur ESC pour quitter. Cliquez sur 'Refresh' pour actualiser la vue active.");
+        guide.setHeaderText("Raccourcis & fonctionnalités");
+        guide.setContentText(
+            "• Barre latérale : Navigation entre les vues\n" +
+            "• Recherche globale : Trouve sources/consommateurs\n" +
+            "• Bouton Actualiser : Rafraîchit la vue active\n" +
+            "• ESC : Quitter l'application\n" +
+            "• Toutes les suppressions sont fonctionnelles"
+        );
         guide.showAndWait();
     }
 
     private void afficherNotification(String message) {
-        // Log console + mise à jour statut (simple)
         System.out.println("📢 " + message);
         if (lblStatut != null) lblStatut.setText(message);
     }

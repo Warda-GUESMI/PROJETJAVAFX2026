@@ -174,7 +174,7 @@ public class VueGestionSource extends Stage {
         btnAjouter.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
         btnAjouter.setOnAction(e -> ajouterSource());
         
-        Button btnSupprimer = new Button("Supprimer la Source");
+        /*Button btnSupprimer = new Button("Supprimer la Source");
         btnSupprimer.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
        btnSupprimer.setOnAction(e -> supprimerSourceAvecConfirmation());
 
@@ -183,9 +183,9 @@ public class VueGestionSource extends Stage {
         btnActualiser.setOnAction(e -> actualiserTableau());
         
         Button btnFermer = new Button("Fermer");
-        btnFermer.setOnAction(e -> this.close());
+        btnFermer.setOnAction(e -> this.close());*/
         
-        conteneur.getChildren().addAll(btnAjouter, btnSupprimer, btnActualiser, btnFermer);
+        conteneur.getChildren().addAll(btnAjouter);
         return conteneur;
     }
     
@@ -240,7 +240,7 @@ public class VueGestionSource extends Stage {
     /**
      * Supprime la source sélectionnée dans le tableau.
      */
-    private void supprimerSource() {
+   /* private void supprimerSource() {
         SourceEnergie sourceSelectionnee = tableauSources.getSelectionModel().getSelectedItem();
         if (sourceSelectionnee == null) {
             afficherAlerte("Erreur", "Veuillez sélectionner une source à supprimer.");
@@ -283,7 +283,7 @@ public class VueGestionSource extends Stage {
     /**
  * Supprime la source sélectionnée avec une confirmation utilisateur.
  */
-private void supprimerSourceAvecConfirmation() {
+/*private void supprimerSourceAvecConfirmation() {
 
     SourceEnergie sourceSelectionnee = tableauSources.getSelectionModel().getSelectedItem();
 
@@ -291,7 +291,7 @@ private void supprimerSourceAvecConfirmation() {
         afficherAlerte("Erreur", "Veuillez sélectionner une source à supprimer.");
         return;
     }
-
+/*
     Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
     confirmation.setTitle("Confirmation de suppression");
     confirmation.setHeaderText("Voulez-vous vraiment supprimer cette source ?");
@@ -311,5 +311,5 @@ private void supprimerSourceAvecConfirmation() {
         }
     });
 }
-
-}
+*/
+} 

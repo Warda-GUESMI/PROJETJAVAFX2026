@@ -57,7 +57,7 @@ public class ControleurSource {
      * @param source Source à supprimer
      * @return true si supprimée, false sinon
      */
-    public boolean supprimerSource(SourceEnergie source) {
+   /* public boolean supprimerSource(SourceEnergie source) {
         if (source == null) return false;
         return gestionEnergie.getSources().remove(source);
     }
@@ -67,7 +67,7 @@ public class ControleurSource {
      * @param index Index de la source
      * @return true si supprimée, false sinon
      */
-    public boolean supprimerSourceParIndex(int index) {
+    /*public boolean supprimerSourceParIndex(int index) {
         List<SourceEnergie> sources = gestionEnergie.getSources();
         if (index >= 0 && index < sources.size()) {
             sources.remove(index);
@@ -80,12 +80,12 @@ public class ControleurSource {
      * Supprime toutes les sources.
      * @return Nombre de sources supprimées
      */
-    public int supprimerTout() {
+  /*  public int supprimerTout() {
         int nb = gestionEnergie.getSources().size();
         gestionEnergie.getSources().clear();
         return nb;
     }
-
+*/
     // ============================= UPDATE =============================
     /**
      * Remplace une source à l'index donné.

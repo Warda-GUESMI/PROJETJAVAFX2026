@@ -146,7 +146,7 @@ public class VueGestionConsommateur extends Stage {
         btnModifier.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
         btnModifier.setOnAction(e -> modifierConsommation());
         
-        Button btnSupprimer = new Button("Supprimer");
+        /*Button btnSupprimer = new Button("Supprimer");
         btnSupprimer.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
         btnSupprimer.setOnAction(e -> supprimerConsommateur());
         
@@ -154,9 +154,9 @@ public class VueGestionConsommateur extends Stage {
         btnActualiser.setOnAction(e -> actualiserTableau());
         
         Button btnFermer = new Button("Fermer");
-        btnFermer.setOnAction(e -> this.close());
+        btnFermer.setOnAction(e -> this.close());*/
         
-        conteneur.getChildren().addAll(btnAjouter, btnModifier, btnSupprimer, btnActualiser, btnFermer);
+        conteneur.getChildren().addAll(btnAjouter, btnModifier);
         return conteneur;
     }
     
@@ -236,7 +236,7 @@ public class VueGestionConsommateur extends Stage {
     /**
      * Supprime le consommateur sélectionné.
      */
-    private void supprimerConsommateur() {
+    /*private void supprimerConsommateur() {
         Consommateur consommateurSelectionne = tableauConsommateurs.getSelectionModel().getSelectedItem();
         
         if (consommateurSelectionne == null) {

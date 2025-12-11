@@ -231,7 +231,13 @@ public class ControleurSimulation {
     public GestionEnergie getGestionEnergie() {
         return gestionEnergie;
     }
-    
+    // Dans ControleurSimulation
+public void ajouterRecordSimulation(RecordSimulation record) {
+    if (record != null) {
+        historique.ajouter(record);
+    }
+}
+
     /**
      * Obtient l'historique.
      * @return Historique
