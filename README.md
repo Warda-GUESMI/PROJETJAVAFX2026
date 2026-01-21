@@ -36,5 +36,3 @@ Exécuter vue.ApplicationPrincipaleModern
 👥 Auteur
 Projet Académique ENICARTHAGE 2025-2026
 Développé par Warda Guesmi
-📄 Licence
-Usage académique uniquement
